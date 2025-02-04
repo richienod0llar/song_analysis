@@ -14,8 +14,8 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 # Set environment variables for Spotify API
-os.environ['SPOTIPY_CLIENT_ID'] = '838a32980bea47a7a385977cdbc3c74f'
-os.environ['SPOTIPY_CLIENT_SECRET'] = 'dfa21e3dee1b49ce9e239d569bdf6cd8'
+os.environ['SPOTIPY_CLIENT_ID'] = 'ID'
+os.environ['SPOTIPY_CLIENT_SECRET'] = 'SECRET'
 
 # Authenticate with Spotify
 spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
