@@ -3,10 +3,13 @@ import pandas as pd
 import numpy as np
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+from nltk.util import ngrams
 import nltk
 from sklearn.preprocessing import MinMaxScaler
 import plotly.express as px
 import plotly.graph_objects as go
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from collections import Counter
 
 # Download required NLTK data
 nltk.download('punkt', quiet=True)
@@ -20,6 +23,19 @@ def load_sad_words():
     except FileNotFoundError:
         print("Error: sad_words.txt not found!")
         return set()
+
+def load_intensity_words():
+    """Load emotional intensity words."""
+    try:
+        with open('intensity_words.txt', 'r') as f:
+            return set(word.strip().lower() for word in f.readlines())
+    except FileNotFoundError:
+        # Default set of intensity words if file not found
+        return {
+            'very', 'really', 'so', 'extremely', 'totally',
+            'absolutely', 'completely', 'utterly', 'deeply',
+            'intensely', 'strongly', 'terribly', 'incredibly'
+        }
 
 def load_data():
     """Load data from SQLite database into pandas DataFrame."""
@@ -122,22 +138,55 @@ def load_data():
     return df
 
 def calculate_sentiment(lyrics, sad_words):
-    """Calculate sentiment scores for lyrics."""
+    """Calculate enhanced sentiment scores for lyrics."""
     if pd.isna(lyrics):
-        return 0, 0
+        return 0, 0, 0, 0, 0
         
-    # Tokenize and remove stop words
+    # Initialize VADER sentiment analyzer
+    analyzer = SentimentIntensityAnalyzer()
+    
+    # Get intensity words
+    intensity_words = load_intensity_words()
+    
+    # Tokenize and process text
     stop_words = set(stopwords.words('english'))
     words = word_tokenize(str(lyrics).lower())
     words = [word for word in words if word.isalnum() and word not in stop_words]
     
-    # Calculate metrics
+    # Calculate basic metrics
     word_count = len(words)
     if word_count == 0:
-        return 0, 0
+        return 0, 0, 0, 0, 0
         
+    # Calculate sad word frequency
     sad_count = sum(1 for word in words if word in sad_words)
-    return sad_count / word_count, word_count
+    sad_ratio = sad_count / word_count
+    
+    # Calculate emotional intensity
+    intensity_count = sum(1 for word in words if word in intensity_words)
+    intensity_score = intensity_count / word_count
+    
+    # Analyze word repetition (could indicate emphasis)
+    word_freq = Counter(words)
+    repeated_sad_words = sum(count for word, count in word_freq.items() 
+                           if word in sad_words and count > 1)
+    repetition_score = repeated_sad_words / word_count if word_count > 0 else 0
+    
+    # Calculate n-gram sadness (contextual sadness)
+    bigrams = list(ngrams(words, 2))
+    trigrams = list(ngrams(words, 3))
+    
+    # Count n-grams containing sad words
+    sad_bigrams = sum(1 for bg in bigrams if any(word in sad_words for word in bg))
+    sad_trigrams = sum(1 for tg in trigrams if any(word in sad_words for word in tg))
+    
+    ngram_score = (sad_bigrams + sad_trigrams) / (len(bigrams) + len(trigrams)) if (len(bigrams) + len(trigrams)) > 0 else 0
+    
+    # Get VADER sentiment
+    vader_sentiment = analyzer.polarity_scores(str(lyrics))
+    negativity_score = vader_sentiment['neg']
+    
+    return sad_ratio, word_count, intensity_score, ngram_score, negativity_score
 
 def analyze_lyrics():
     # Load data
@@ -154,14 +203,17 @@ def analyze_lyrics():
     print(f"Loaded {len(sad_words)} sad words")
     
     # Calculate sentiment for each song
-    print("\nCalculating sentiment scores...")
+    print("\nCalculating enhanced sentiment scores...")
     sentiments = []
     for idx, row in df.iterrows():
-        pct_sad, word_count = calculate_sentiment(row['lyrics'], sad_words)
+        sad_ratio, word_count, intensity_score, ngram_score, negativity_score = calculate_sentiment(row['lyrics'], sad_words)
         sentiments.append({
             'title': row['title'],
-            'pct_sad': pct_sad,
-            'word_count': word_count
+            'sad_ratio': sad_ratio,
+            'word_count': word_count,
+            'intensity_score': intensity_score,
+            'ngram_score': ngram_score,
+            'negativity_score': negativity_score
         })
         if (idx + 1) % 10 == 0:
             print(f"Processed {idx + 1} songs...")
@@ -171,10 +223,24 @@ def analyze_lyrics():
     # Merge sentiment data with main dataframe
     df = df.merge(sent_df, on='title', how='left')
     
-    # Calculate gloom index
-    print("\nCalculating gloom index...")
+    # Calculate enhanced gloom index with weighted components
+    print("\nCalculating enhanced gloom index...")
     df['lyrical_density'] = df['word_count'] / df['word_count'].mean()
-    df['gloom_index'] = df['pct_sad'] * (1 + df['lyrical_density'])
+    
+    # Weights for different components (can be adjusted)
+    WEIGHTS = {
+        'sad_ratio': 0.3,
+        'intensity': 0.2,
+        'ngram': 0.2,
+        'negativity': 0.3
+    }
+    
+    df['gloom_index'] = (
+        WEIGHTS['sad_ratio'] * df['sad_ratio'] * (1 + df['lyrical_density']) +
+        WEIGHTS['intensity'] * df['intensity_score'] +
+        WEIGHTS['ngram'] * df['ngram_score'] +
+        WEIGHTS['negativity'] * df['negativity_score']
+    )
     
     # Rescale gloom index to 1-100
     scaler = MinMaxScaler((1, 100))
@@ -223,7 +289,7 @@ def analyze_lyrics():
             text=[f"Song: {title}<br>Gloom Index: {gloom:.2f}<br>Sad Words: {sad:.1%}<br>Word Count: {words}" 
                   for title, gloom, sad, words in zip(album_data['title'], 
                                                     album_data['gloom_index'],
-                                                    album_data['pct_sad'],
+                                                    album_data['sad_ratio'],
                                                     album_data['word_count'])],
             hoverinfo='text',
             marker=dict(
@@ -270,7 +336,7 @@ def analyze_lyrics():
     print("\nInteractive plot saved as 'album_gloom_analysis.html'")
     
     # Save detailed results to CSV
-    results_df = df[['title', 'album_name', 'release_year', 'pct_sad', 'word_count', 'gloom_index']]
+    results_df = df[['title', 'album_name', 'release_year', 'sad_ratio', 'word_count', 'gloom_index']]
     
     # Sort by album (in chronological order) and then by gloom index
     album_order_dict = {album: i for i, album in enumerate(album_order)}
@@ -291,7 +357,7 @@ def analyze_lyrics():
             print(f"  {gloomiest_song['title']}")
             print(f"  Gloom Index: {gloomiest_song['gloom_index']:.2f}")
             print(f"  Word Count: {gloomiest_song['word_count']}")
-            print(f"  Sad Word %: {gloomiest_song['pct_sad']*100:.1f}%")
+            print(f"  Sad Word %: {gloomiest_song['sad_ratio']*100:.1f}%")
     
     # Print overall statistics
     print("\nOverall Statistics:")
