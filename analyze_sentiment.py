@@ -43,12 +43,12 @@ def load_data():
     
     # List of specific albums to analyze
     target_albums = [
-        'The New Abnormal',
-        'Comedown Machine',
-        'Angles',
-        'First Impressions of Earth',
-        'Room on Fire',
-        'Is This It'
+        'OK Computer',
+        'Kid A',
+        'Amnesiac',
+        'Hail to the Thief',
+        'In Rainbows',
+        'A Moon Shaped Pool'
     ]
     
     # Create a SQL-friendly string of album names for the query
@@ -251,12 +251,12 @@ def analyze_lyrics():
     
     # Sort albums chronologically
     album_order = [
-        'Is This It',
-        'Room on Fire',
-        'First Impressions of Earth',
-        'Angles',
-        'Comedown Machine',
-        'The New Abnormal'
+        'OK Computer',
+        'Kid A',
+        'Amnesiac',
+        'Hail to the Thief',
+        'In Rainbows',
+        'A Moon Shaped Pool'
     ]
     
     # Filter to only include albums we actually found
@@ -311,7 +311,7 @@ def analyze_lyrics():
 
     # Update layout
     fig.update_layout(
-        title=f'Data Driven Depression: The Strokes',
+        title=f'Data Driven Depression: Radiohead',
         height=800,
         showlegend=True,
         legend_title_text='Albums',

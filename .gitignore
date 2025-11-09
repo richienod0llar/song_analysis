@@ -25,6 +25,8 @@ venv.bak/
 # Data files
 *.db
 *.sqlite3
+*.csv
+*.txt
 
 # IDE files
 .vscode/

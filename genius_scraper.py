@@ -21,22 +21,22 @@ if not GENIUS_TOKEN:
 
 # Define the target albums
 TARGET_ALBUMS = [
-    'The New Abnormal',
-    'Comedown Machine',
-    'Angles',
-    'First Impressions of Earth',
-    'Room on Fire',
-    'Is This It'
+    'OK Computer',
+    'Kid A',
+    'Amnesiac',
+    'Hail to the Thief',
+    'In Rainbows',
+    'A Moon Shaped Pool'
 ]
 
 # Define album URLs for direct scraping
 ALBUM_URLS = {
-    'The New Abnormal': 'https://genius.com/albums/The-strokes/The-new-abnormal',
-    'Comedown Machine': 'https://genius.com/albums/The-strokes/Comedown-machine',
-    'Angles': 'https://genius.com/albums/The-strokes/Angles',
-    'First Impressions of Earth': 'https://genius.com/albums/The-strokes/First-impressions-of-earth',
-    'Room on Fire': 'https://genius.com/albums/The-strokes/Room-on-fire',
-    'Is This It': 'https://genius.com/albums/The-strokes/Is-this-it'
+    'OK Computer': 'https://genius.com/albums/Radiohead/Ok-computer',
+    'Kid A': 'https://genius.com/albums/Radiohead/Kid-a',
+    'Amnesiac': 'https://genius.com/albums/Radiohead/Amnesiac',
+    'Hail to the Thief': 'https://genius.com/albums/Radiohead/Hail-to-the-thief',
+    'In Rainbows': 'https://genius.com/albums/Radiohead/In-rainbows',
+    'A Moon Shaped Pool': 'https://genius.com/albums/Radiohead/A-moon-shaped-pool'
 }
 
 class CustomGenius:
@@ -183,12 +183,12 @@ class CustomGenius:
     def get_album_year(self, album_name):
         """Return the release year for the album."""
         album_years = {
-            'Is This It': 2001,
-            'Room on Fire': 2003,
-            'First Impressions of Earth': 2006,
-            'Angles': 2011,
-            'Comedown Machine': 2013,
-            'The New Abnormal': 2020
+            'OK Computer': 1997,
+            'Kid A': 2000,
+            'Amnesiac': 2001,
+            'Hail to the Thief': 2003,
+            'In Rainbows': 2007,
+            'A Moon Shaped Pool': 2016
         }
         return album_years.get(album_name)
     
@@ -387,8 +387,8 @@ def main():
     # Create database and get connection
     conn = create_database()
     
-    # Set artist name to The Strokes
-    artist_name = "The Strokes"
+    # Set artist name to Radiohead
+    artist_name = "Radiohead"
     
     # Fetch artist data
     print(f"Fetching data for {artist_name}...")
